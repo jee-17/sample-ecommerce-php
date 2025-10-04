@@ -36,7 +36,7 @@ if ($product_id > 0) {
         
         // SQL query to fetch all variants for that product
         // **CORRECTION HERE: changed 'variant_name' to 'weight'**
-        $sql_variants = "SELECT weight, price FROM product_variants WHERE product_id = ? ORDER BY price ASC";
+        $sql_variants = "SELECT weight, price,quantity FROM product_variants WHERE product_id = ? ORDER BY price ASC";
         $stmt_variants = $conn->prepare($sql_variants);
         $stmt_variants->bind_param("i", $product_id);
         $stmt_variants->execute();

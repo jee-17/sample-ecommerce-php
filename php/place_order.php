@@ -26,8 +26,20 @@ if (!isset($_SESSION['user_id'])) {
 $uid = $_SESSION['user_id'];
 $address_id = intval($_POST['address_id'] ?? 0);
 $payment_method = $_POST['payment_method'] ?? '';
- $upi_id    = trim($_POST['upiId'] ?? '');
+$upi_id    = trim($_POST['upiId'] ?? '');
 $payment_phone  = trim($_POST['payment_phone'] ?? '');
+
+
+if ($payment_method === 'UPI') {
+    if (empty($upi_id) || !preg_match("/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/", $upi_id)) {
+        echo json_encode(["success"=>false,"message"=>"Invalid UPI ID format"]);
+        exit;
+    }
+    if (empty($payment_phone) || !preg_match("/^\+?\d{10,15}$/", $payment_phone)) {
+        echo json_encode(["success"=>false,"message"=>"Invalid phone number for UPI"]);
+        exit;
+    }
+}
 
 
 
@@ -97,6 +109,21 @@ $stmtItem = $conn->prepare("INSERT INTO order_items (order_id, product_name, pac
 foreach ($items as $it) {
     $stmtItem->bind_param("isssdi", $order_id, $it['product_name'], $it['package_size'], $it['product_image'], $it['price'], $it['quantity']);
     $stmtItem->execute();
+
+    // --- Reduce stock in product_variants ---
+    $updateStock = $conn->prepare("UPDATE product_variants 
+                                   SET quantity = quantity - ? 
+                                   WHERE product_id = (SELECT id FROM products WHERE name = ?) 
+                                     AND weight = ? 
+                                     AND quantity >= ?");
+    $updateStock->bind_param("issi", 
+        $it['quantity'], 
+        $it['product_name'], 
+        $it['package_size'], 
+        $it['quantity']
+    );
+    $updateStock->execute();
+    $updateStock->close();
 }
 $stmtItem->close();
 

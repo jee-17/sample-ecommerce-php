@@ -40,6 +40,20 @@ if ($stmt->num_rows > 0) {
 }
 $stmt->close();
 
+$stmt = $conn->prepare("SELECT 1 FROM users WHERE name = ?");
+$stmt->bind_param("s", $name);
+$stmt->execute();
+$stmt->store_result();
+
+if ($stmt->num_rows > 0) {
+    $response['message']=' Name already registered.';
+    $stmt->close();
+    $conn->close();
+    echo json_encode($response);
+    exit;
+}
+$stmt->close();
+
 // --- Hash password ---
 $password = $passwordRaw;
 
